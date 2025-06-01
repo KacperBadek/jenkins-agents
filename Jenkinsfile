@@ -2,7 +2,7 @@ pipeline {
     agent {
         docker {
             image 'hasacz325/custom-jenkins-build-agent:1.0.1'
-            args '-u root'
+            args '-u root -v /var/run/docker.sock:/var/run/docker.sock'
         }
     }
 
@@ -74,8 +74,8 @@ pipeline {
         always {
             echo 'Cleaning up local Docker images...'
             sh """
-            docker rmi ${DOCKER_IMAGE}:${env.BUILD_NUMBER} || true
-            docker rmi ${DOCKER_IMAGE}:latest || true
+            docker rmi ${env.DOCKER_IMAGE}:${env.BUILD_NUMBER} || true
+            docker rmi ${env.DOCKER_IMAGE}:latest || true
             docker system prune -f || true
             """
         }
