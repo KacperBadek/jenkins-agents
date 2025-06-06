@@ -46,18 +46,20 @@ pipeline {
         }
 
         stage('SonarQube Analysis') {
-            steps {
-                withSonarQubeEnv("${SONARQUBE_SERVER}") {
-                    sh """
-                    npx sonar-scanner \
-                        -Dsonar.projectKey=express-app \
-                        -Dsonar.sources=. \
-                        -Dsonar.exclusions=node_modules/**,coverage/** \
-                        -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
-                        -Dsonar.host.url=http://sonarqube:9000
-                    """
+                    steps {
+                        dir('app') {
+                            withSonarQubeEnv("${SONARQUBE_SERVER}") {
+                                sh """
+                                    npx sonar-scanner \
+                                        -Dsonar.projectKey=express-app \
+                                        -Dsonar.sources=. \
+                                        -Dsonar.exclusions=node_modules/**,coverage/** \
+                                        -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
+                                        -Dsonar.host.url=http://sonarqube:9000
+                                """
+                            }
+                        }
+                    }
                 }
-            }
-        }
     }
 }
