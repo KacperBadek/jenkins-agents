@@ -18,9 +18,11 @@ pipeline {
             }
         }
 
-        stage('Install Dependencies') {
+        stage('Install dependencies') {
             steps {
-                sh 'npm ci'
+                dir('app') {
+                    sh 'npm ci'
+                }
             }
         }
 
