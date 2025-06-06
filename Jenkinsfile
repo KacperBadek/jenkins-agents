@@ -27,10 +27,12 @@ pipeline {
         }
 
         stage('Run Unit Tests') {
-            steps {
-                sh 'npm test'
-            }
-        }
+                    steps {
+                        dir('app') {
+                            sh 'npm test'
+                        }
+                    }
+                }
 
         stage('Code Coverage Report') {
             steps {

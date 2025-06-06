@@ -1,6 +1,6 @@
 const request = require('supertest');
 const express = require('express');
-const app = require('../app/server');
+const app = require('../server');
 
 describe('GET /api/data', () => {
     it('should return sample data', async () => {
