@@ -1,91 +1,59 @@
 pipeline {
-    agent {
-        docker {
-            image 'hasacz325/custom-jenkins-build-agent:1.0.1'
-            args '-u root -v /var/run/docker.sock:/var/run/docker.sock'
-        }
-    }
+    agent any
 
     environment {
-        DOCKER_IMAGE = "hasacz325/node-microservice"
-        DOCKER_CREDENTIALS_ID = 'dockerhub-credentials'
+        NODE_ENV = 'test'
+        SONARQUBE_SERVER = 'Local SonarQube'
+    }
+
+    tools {
+        nodejs 'NodeJS' // ustawione w Jenkins > Global Tool Configuration
     }
 
     stages {
-        stage('Checkout') {
+
+        stage('Checkout Source') {
             steps {
                 checkout scm
             }
         }
 
-        stage('Lint & Static Analysis') {
+        stage('Install Dependencies') {
             steps {
-                sh 'npm install'
+                sh 'npm ci'
             }
         }
 
-        stage('Parallel Testing & Coverage') {
-            parallel {
-                stage('Unit Tests & Coverage') {
-                    steps {
-                        sh 'npm run test:unit -- --coverage'
-                    }
-                }
-                stage('Integration Tests') {
-                    steps {
-                        sh 'npm run test:integration'
-                    }
-                }
+        stage('Run Unit Tests') {
+            steps {
+                sh 'npm test'
             }
         }
 
-        stage('Archive Artifacts') {
+        stage('Code Coverage Report') {
             steps {
-                archiveArtifacts artifacts: 'coverage/**', fingerprint: true
-                junit 'test-results/**/*.xml'
+                sh 'npm run test:coverage'
+                publishHTML([
+                    reportDir: 'coverage/lcov-report',
+                    reportFiles: 'index.html',
+                    reportName: 'Code Coverage'
+                ])
             }
         }
 
-        stage('Build Application Docker Image') {
+        stage('SonarQube Analysis') {
             steps {
-                script {
+                withSonarQubeEnv("${SONARQUBE_SERVER}") {
                     sh """
-                    docker build -t ${DOCKER_IMAGE}:${env.BUILD_NUMBER} -t ${DOCKER_IMAGE}:latest .
+                    npx sonar-scanner \
+                        -Dsonar.projectKey=express-app \
+                        -Dsonar.sources=. \
+                        -Dsonar.exclusions=node_modules/**,coverage/** \
+                        -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
+                        -Dsonar.host.url=http://sonarqube:9000
                     """
                 }
             }
-        }
-
-        stage('Push Application Image to Docker Hub') {
-            steps {
-                withCredentials([usernamePassword(credentialsId: "${DOCKER_CREDENTIALS_ID}", usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                    sh """
-                    echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                    docker push ${DOCKER_IMAGE}:${env.BUILD_NUMBER}
-                    docker push ${DOCKER_IMAGE}:latest
-                    docker logout
-                    """
-                }
-            }
-        }
-    }
-
-    post {
-        always {
-            echo 'Cleaning up local Docker images...'
-            sh """
-            docker rmi ${env.DOCKER_IMAGE}:${env.BUILD_NUMBER} || true
-            docker rmi ${env.DOCKER_IMAGE}:latest || true
-            docker system prune -f || true
-            """
-        }
-
-        success {
-            echo 'Pipeline zakończony sukcesem!'
-        }
-
-        failure {
-            echo 'Pipeline nie powiódł się.'
         }
     }
 }
