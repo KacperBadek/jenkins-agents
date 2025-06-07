@@ -1,20 +1,19 @@
 services:
   jenkins:
     image: jenkins/jenkins:lts
-    container_name: jenkins
+    container_name: jenkins_compose
     user: root
     ports:
       - "8080:8080"
-      - "50000:50000"
     volumes:
-      - jenkins_home:/var/jenkins_home
+      - D:/jenkins_home:/var/jenkins_home
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - ci
 
   sonarqube:
     image: sonarqube:lts
-    container_name: sonarqube
+    container_name: sonarqube_compose
     ports:
       - "9000:9000"
     environment:
